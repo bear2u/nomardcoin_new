@@ -24,6 +24,7 @@ app.post("/blocks", (req, res) => {
     res.send(newBlock);
 });
 
+
 app.post("/peers", (req, res) => {
     const { body : { peer } } = req;
     connectToPeers(peer);
