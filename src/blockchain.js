@@ -20,7 +20,7 @@ const genesisBlock = new Block(
 
 let blockchain = [genesisBlock];
 
-const getLastBlock = () => blockchain[blockchain.length - 1];
+const getNewestBlock = () => blockchain[blockchain.length - 1];
 
 const getTimestamp = () => new Date().getTime() / 1000;
 
@@ -32,7 +32,7 @@ const createHash = (index, previousHash, timestamp, data) =>
   ).toString();
 
 const createNewBlock = data => {
-  const previousBlock = getLastBlock();
+  const previousBlock = getNewestBlock();
   const newBlockIndex = previousBlock.index + 1;
   const newTimestamp = getTimestamp();
   const newHash = createHash(
@@ -116,7 +116,7 @@ const replaceChain = candidateChain => {
 };
 
 const addBlockToChain = candidateBlock => {
-  if (isBlockValid(candidateBlock, getLastBlock())) {
+  if (isBlockValid(candidateBlock, getNewestBlock())) {
     blockchain.push(candidateBlock);
     return true;
   } else {
@@ -127,7 +127,9 @@ const addBlockToChain = candidateBlock => {
 module.exports = {
     getBlockchain,
     createNewBlock,
-    getLastBlock,
+    getNewestBlock,
     isBlockValid,
-    isBlockStructureValid
+    isBlockStructureValid,
+    addBlockToChain,
+    replaceChain
 }
