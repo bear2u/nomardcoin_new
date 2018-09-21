@@ -1,5 +1,5 @@
 const CryptoJS = require("crypto-js"),
-  hexToBinary = require('hex-to-binary');
+  hexToBinary = require("hex-to-binary");
 
 class Block {
   constructor(index, hash, previousHash, timestamp, data, difficulty, nonce) {
@@ -41,21 +41,21 @@ const createNewBlock = data => {
   const newTimestamp = getTimestamp();
 
   const newBlock = findBlock(
-    newBlockIndex,    
+    newBlockIndex,
     previousBlock.hash,
     newTimestamp,
     data,
     20
   );
   addBlockToChain(newBlock);
-  require('./p2p').broadcastNewBlock();
+  require("./p2p").broadcastNewBlock();
   return newBlock;
 };
 
 const findBlock = (index, previousHash, timestamp, data, difficulty) => {
-  let nonce = 0;  
-  while(true) {
-    console.log('Current nonce', nonce);
+  let nonce = 0;
+  while (true) {
+    console.log("Current nonce", nonce);
     const hash = createHash(
       index,
       previousHash,
@@ -65,23 +65,31 @@ const findBlock = (index, previousHash, timestamp, data, difficulty) => {
       nonce
     );
     //to do: check amount of zeros (hasMatchesDifficulty)
-    if(hasMatchesDifficulty(hash, difficulty)) {
-      return new Block(index, hash, previousHash, timestamp, data, difficulty, nonce);
+    if (hasMatchesDifficulty(hash, difficulty)) {
+      return new Block(
+        index,
+        hash,
+        previousHash,
+        timestamp,
+        data,
+        difficulty,
+        nonce
+      );
     }
 
-    nonce++
+    nonce++;
   }
-}
+};
 
 const hasMatchesDifficulty = (hash, difficulty) => {
   const hashInBinary = hexToBinary(hash);
   const requiredZeros = "0".repeat(difficulty);
-  console.log('Trying difficulty:', difficulty, 'with hash', hash);
+  console.log("Trying difficulty:", difficulty, "with hash", hash);
   return hashInBinary.startsWith(requiredZeros);
-}
+};
 
 const getBlocksHash = block =>
-  createHash(block.index, block.previousHash, block.timestamp, block.data);
+  createHash(block.index, block.previousHash, block.timestamp, block.data, block.difficulty, block.nonce);
 
 const isBlockValid = (candidateBlock, latestBlock) => {
   if (!isBlockStructureValid(candidateBlock)) {
@@ -153,11 +161,11 @@ const addBlockToChain = candidateBlock => {
 };
 
 module.exports = {
-    getBlockchain,
-    createNewBlock,
-    getNewestBlock,
-    isBlockValid,
-    isBlockStructureValid,
-    addBlockToChain,
-    replaceChain
-}
+  getBlockchain,
+  createNewBlock,
+  getNewestBlock,
+  isBlockValid,
+  isBlockStructureValid,
+  addBlockToChain,
+  replaceChain
+};
