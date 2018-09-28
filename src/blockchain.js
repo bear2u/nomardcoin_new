@@ -1,6 +1,9 @@
 const CryptoJS = require("crypto-js"),
   hexToBinary = require("hex-to-binary");
 
+const BLOCK_GENERATION_INTERVAL = 10;
+const DIFFICULTY_ADJUSMENT_INTERVAL = 10;
+
 class Block {
   constructor(index, hash, previousHash, timestamp, data, difficulty, nonce) {
     this.index = index;
@@ -8,6 +11,7 @@ class Block {
     this.previousHash = previousHash;
     this.timestamp = timestamp;
     this.data = data;
+    this.difficulty = difficulty;
     this.nonce = nonce;
   }
 }
@@ -39,17 +43,44 @@ const createNewBlock = data => {
   const previousBlock = getNewestBlock();
   const newBlockIndex = previousBlock.index + 1;
   const newTimestamp = getTimestamp();
-
+  const difficulty = findDifficulty();
   const newBlock = findBlock(
     newBlockIndex,
     previousBlock.hash,
     newTimestamp,
     data,
-    20
+    difficulty
   );
   addBlockToChain(newBlock);
   require("./p2p").broadcastNewBlock();
   return newBlock;
+};
+
+const findDifficulty = () => {
+  const newestBlock = getNewestBlock();
+  if (
+    newestBlock.index % DIFFICULTY_ADJUSMENT_INTERVAL === 0 &&
+    newestBlock.index !== 0
+  ) {
+    return calculateNewDifficulty(newestBlock, getBlockchain());
+  } else {
+    return newestBlock.difficulty;
+  }
+};
+
+const calculateNewDifficulty = (newestBlock, blockchain) => {
+  const lastCalculatedBlock =
+    blockchain[blockchain.length - DIFFICULTY_ADJUSMENT_INTERVAL];
+  const timeExpected =
+    BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSMENT_INTERVAL;
+  const timeTaken = newestBlock.timestamp - lastCalculatedBlock.timestamp;
+  if (timeTaken < timeExpected / 2) {
+    return lastCalculatedBlock.difficulty + 1;
+  } else if (timeTaken > timeExpected * 2) {
+    return lastCalculatedBlock.difficulty - 1;
+  } else {
+    return lastCalculatedBlock.difficulty;
+  }
 };
 
 const findBlock = (index, previousHash, timestamp, data, difficulty) => {
@@ -64,8 +95,7 @@ const findBlock = (index, previousHash, timestamp, data, difficulty) => {
       difficulty,
       nonce
     );
-    //to do: check amount of zeros (hasMatchesDifficulty)
-    if (hasMatchesDifficulty(hash, difficulty)) {
+    if (hashMatchesDifficulty(hash, difficulty)) {
       return new Block(
         index,
         hash,
@@ -76,20 +106,26 @@ const findBlock = (index, previousHash, timestamp, data, difficulty) => {
         nonce
       );
     }
-
     nonce++;
   }
 };
 
-const hasMatchesDifficulty = (hash, difficulty) => {
+const hashMatchesDifficulty = (hash, difficulty) => {
   const hashInBinary = hexToBinary(hash);
   const requiredZeros = "0".repeat(difficulty);
-  console.log("Trying difficulty:", difficulty, "with hash", hash);
+  console.log("Trying difficulty:", difficulty, "with hash", hashInBinary);
   return hashInBinary.startsWith(requiredZeros);
 };
 
 const getBlocksHash = block =>
-  createHash(block.index, block.previousHash, block.timestamp, block.data, block.difficulty, block.nonce);
+  createHash(
+    block.index,
+    block.previousHash,
+    block.timestamp,
+    block.data,
+    block.difficulty,
+    block.nonce
+  );
 
 const isBlockValid = (candidateBlock, latestBlock) => {
   if (!isBlockStructureValid(candidateBlock)) {
@@ -111,7 +147,6 @@ const isBlockValid = (candidateBlock, latestBlock) => {
 };
 
 const isBlockStructureValid = block => {
-  console.dir(block);
   return (
     typeof block.index === "number" &&
     typeof block.hash === "string" &&
@@ -161,10 +196,9 @@ const addBlockToChain = candidateBlock => {
 };
 
 module.exports = {
+  getNewestBlock,
   getBlockchain,
   createNewBlock,
-  getNewestBlock,
-  isBlockValid,
   isBlockStructureValid,
   addBlockToChain,
   replaceChain
